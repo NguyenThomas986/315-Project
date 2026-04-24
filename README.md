@@ -18,6 +18,34 @@ The report should focus on one of the following two topics:
 
       (b). Reproduce two or more data mining algorithms for the same task from top KDD conferences over the last three years, and conduct comparisons and analyses.
 
+## Prerequisites
+- **Python 3.11+**
+- **pip**
+- **Git**
+- **Windows Server VM**
+- **IDE (VS Code recommended)**
+
+## Installation Steps
+**1. Clone the repository:**
+```bash
+git clone https://github.com/NguyenThomas986/315-Project
+```
+**2. Install virtualenv:**
+```bash
+pip install virtualenv
+```
+**3. Set up your virtual environment:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+> You should see `(venv)` next to your prompt in the terminal.
+
+**4. Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
 ## 1. Introduction
 - Motivation from real-world applications for the data mining task you have chosen.
 - Give some examples of data mining questions you set out to investigate in this project.
