@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -41,6 +42,11 @@ def main():
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
+    plots_dir = Path("results/plots")
+    models_dir = Path("results/models")
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -59,13 +65,13 @@ def main():
         best_k, results = find_optimal_k(X, range(args.k_min, args.k_max + 1), seed=args.seed)
         labels = results[best_k]["labels"]
         print(f"\nBest k={best_k}")
-        plot_dunn_index(results, best_k)
+        plot_dunn_index(results, best_k, save_path=plots_dir / "dunn_index.png")
 
     for c in range(best_k):
         print(f"  Cluster {c}: {(labels == c).sum()} streamers")
 
     # --- Step 2b: Profile clusters to identify the high-viewership group ---
-    summary_df, best_cluster = profile_clusters(df, labels)
+    summary_df, best_cluster = profile_clusters(df, labels, save_path=plots_dir / "cluster_profiles.png")
 
     # --- Step 3: Cross-validated classification ---
     skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
@@ -93,16 +99,16 @@ def main():
 
             if vl_loss < best_val_loss:
                 best_val_loss = vl_loss
-                torch.save(model.state_dict(), f"best_model_fold{fold}.pt")
+                torch.save(model.state_dict(), models_dir / f"best_model_fold{fold}.pt")
 
-        model.load_state_dict(torch.load(f"best_model_fold{fold}.pt", map_location=device))
+        model.load_state_dict(torch.load(models_dir / f"best_model_fold{fold}.pt", map_location=device))
         result = evaluate(model, test_loader, device, best_k)
         fold_accs.append(result["accuracy"])
         print(f"Fold {fold}/{args.folds} | Accuracy: {result['accuracy']:.4f}")
 
         if fold == 1:
-            plot_loss(train_losses, val_losses, f"loss_curve_fold{fold}.png")
-            plot_confusion_matrix(result["confusion_matrix"], f"confusion_matrix_fold{fold}.png")
+            plot_loss(train_losses, val_losses, save_path=plots_dir / f"loss_curve_fold{fold}.png")
+            plot_confusion_matrix(result["confusion_matrix"], save_path=plots_dir / f"confusion_matrix_fold{fold}.png")
 
     mean_acc = np.mean(fold_accs)
     std_acc = np.std(fold_accs)
