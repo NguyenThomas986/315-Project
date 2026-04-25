@@ -1,8 +1,69 @@
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
+
+PROFILE_NUMERIC = [
+    "AVG_VIEWERS_PER_STREAM",
+    "FOLLOWERS_GAINED_PER_STREAM",
+    "AVERAGE_STREAM_DURATION",
+    "ACTIVE_DAYS_PER_WEEK",
+    "TOTAL_FOLLOWERS",
+    "TOTAL_VIEWS",
+]
+
+PROFILE_CATEGORICAL = [
+    "LANGUAGE",
+    "MOST_STREAMED_GAME",
+    "MOST_ACTIVE_DAY",
+]
+
+
+def profile_clusters(df: pd.DataFrame, labels: np.ndarray, save_path: str = "cluster_profiles.png"):
+    df = df.copy()
+    df["cluster"] = labels
+    num_clusters = len(np.unique(labels))
+
+    print("\n=== Cluster Profiles ===")
+    summaries = []
+    for c in range(num_clusters):
+        subset = df[df["cluster"] == c]
+        row = {"cluster": c, "size": len(subset)}
+        for col in PROFILE_NUMERIC:
+            row[col] = subset[col].mean()
+        summaries.append(row)
+
+        print(f"\nCluster {c}  ({len(subset)} streamers)")
+        for col in PROFILE_NUMERIC:
+            print(f"  {col:<30s} {subset[col].mean():>12,.1f}")
+        for col in PROFILE_CATEGORICAL:
+            top = subset[col].value_counts().index[0]
+            pct = subset[col].value_counts(normalize=True).iloc[0] * 100
+            print(f"  {col:<30s} {top} ({pct:.0f}%)")
+
+    summary_df = pd.DataFrame(summaries).set_index("cluster")
+    best_cluster = int(summary_df["AVG_VIEWERS_PER_STREAM"].idxmax())
+    print(f"\nHighest avg viewership: Cluster {best_cluster} "
+          f"({summary_df.loc[best_cluster, 'AVG_VIEWERS_PER_STREAM']:,.0f} avg viewers/stream)")
+
+    # Bar chart comparing clusters on key metrics
+    metrics = ["AVG_VIEWERS_PER_STREAM", "FOLLOWERS_GAINED_PER_STREAM", "AVERAGE_STREAM_DURATION", "ACTIVE_DAYS_PER_WEEK"]
+    fig, axes = plt.subplots(1, len(metrics), figsize=(14, 4))
+    for ax, metric in zip(axes, metrics):
+        values = [summary_df.loc[c, metric] for c in range(num_clusters)]
+        bars = ax.bar([f"C{c}" for c in range(num_clusters)], values, color="steelblue")
+        bars[best_cluster].set_color("darkorange")
+        ax.set_title(metric.replace("_", " ").title(), fontsize=8)
+        ax.tick_params(labelsize=7)
+    fig.suptitle("Cluster Profiles (orange = highest avg viewers)", fontsize=10)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Cluster profile chart saved to {save_path}")
+
+    return summary_df, best_cluster
 
 
 def evaluate(model, loader: DataLoader, device, num_classes: int) -> dict:

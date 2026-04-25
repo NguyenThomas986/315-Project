@@ -8,7 +8,7 @@ from src.data import load_and_preprocess
 from src.cluster import find_optimal_k, run_kmeans
 from src.model import StreamerClassifier
 from src.train import train_epoch, val_epoch
-from src.evaluate import evaluate, plot_loss, plot_confusion_matrix, plot_dunn_index
+from src.evaluate import evaluate, plot_loss, plot_confusion_matrix, plot_dunn_index, profile_clusters
 
 DATA_PATH = "topstreamers.csv"
 
@@ -63,6 +63,9 @@ def main():
 
     for c in range(best_k):
         print(f"  Cluster {c}: {(labels == c).sum()} streamers")
+
+    # --- Step 2b: Profile clusters to identify the high-viewership group ---
+    summary_df, best_cluster = profile_clusters(df, labels)
 
     # --- Step 3: Cross-validated classification ---
     skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
