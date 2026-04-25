@@ -48,7 +48,6 @@ pip install -r requirements.txt
 
 # Final Report
 The training process and final results of our model is located in [REPORT_NOTES](REPORT_NOTES.md)
----
 
 ## 1. Introduction
 - Motivation from real-world applications for the data mining task you have chosen.
